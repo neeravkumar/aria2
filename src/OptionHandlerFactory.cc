@@ -508,7 +508,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_MAX_CONNECTION_PER_SERVER,
                        TEXT_MAX_CONNECTION_PER_SERVER,
                        "1",
-                       1, 16,
+                       1, 1600,
                        'x'));
     op->addTag(TAG_BASIC);
     op->addTag(TAG_FTP);
