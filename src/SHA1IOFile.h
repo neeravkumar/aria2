@@ -1,7 +1,8 @@
+/* <!-- copyright */
 /*
  * aria2 - The high speed download utility
  *
- * Copyright (C) 2010 Tatsuhiro Tsujikawa
+ * Copyright (C) 2015 Tatsuhiro Tsujikawa
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,28 +32,41 @@
  * files in the program, then also delete it here.
  */
 /* copyright --> */
-#include "clock_gettime_osx.h"
+#ifndef D_SHA1_IO_FILE_H
+#define D_SHA1_IO_FILE_H
 
-#include <mach/mach.h>
-#include <mach/mach_time.h>
+#include "IOFile.h"
+#include "MessageDigest.h"
 
-int clock_gettime(int dummyid, struct timespec* tp)
-{
-  static uint64_t lasttime = mach_absolute_time();
-  static struct timespec monotime = {2678400, 0}; // 1month offset(24*3600*31)
-  uint64_t now = mach_absolute_time();
-  static mach_timebase_info_data_t baseinfo;
-  if(baseinfo.denom == 0) {
-    mach_timebase_info(&baseinfo);
-  }
-  uint64_t elapsed = (now-lasttime)*baseinfo.numer/baseinfo.denom;
-  monotime.tv_sec += elapsed/1000000000;
-  monotime.tv_nsec += elapsed%1000000000;
-  if(monotime.tv_nsec >= 1000000000) {
-    monotime.tv_sec += monotime.tv_nsec/1000000000;
-    monotime.tv_nsec %= 1000000000;
-  }
-  lasttime = now;
-  *tp = monotime;
-  return 0;
-}
+#include <memory>
+
+namespace aria2 {
+
+// Class to calculate SHA1 hash value for data written into this
+// object.  No file I/O is done in this class.
+class SHA1IOFile : public IOFile {
+public:
+  SHA1IOFile();
+
+  std::string digest();
+
+protected:
+  // Not implemented
+  virtual size_t onRead(void* ptr, size_t count) CXX11_OVERRIDE;
+  virtual size_t onWrite(const void* ptr, size_t count) CXX11_OVERRIDE;
+  // Not implemented
+  virtual char* onGets(char* s, int size) CXX11_OVERRIDE;
+  virtual int onVprintf(const char* format, va_list va) CXX11_OVERRIDE;
+  virtual int onFlush() CXX11_OVERRIDE;
+  virtual int onClose() CXX11_OVERRIDE;
+  virtual bool onSupportsColor() CXX11_OVERRIDE;
+  virtual bool isError() const CXX11_OVERRIDE;
+  virtual bool isEOF() const CXX11_OVERRIDE;
+  virtual bool isOpen() const CXX11_OVERRIDE;
+
+private:
+  std::unique_ptr<MessageDigest> sha1_;
+};
+} // namespace aria2
+
+#endif // D_SHA1_IO_FILE_H

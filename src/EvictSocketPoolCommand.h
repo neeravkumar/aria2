@@ -1,7 +1,8 @@
+/* <!-- copyright */
 /*
  * aria2 - The high speed download utility
  *
- * Copyright (C) 2010 Tatsuhiro Tsujikawa
+ * Copyright (C) 2015 Tatsuhiro Tsujikawa
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,28 +32,22 @@
  * files in the program, then also delete it here.
  */
 /* copyright --> */
-#include "clock_gettime_mingw.h"
+#ifndef D_EVICT_SOCKET_POOL_COMMAND_H
+#define D_EVICT_SOCKET_POOL_COMMAND_H
 
-#include <windows.h>
-#include <mmsystem.h>
+#include "TimeBasedCommand.h"
 
-int clock_gettime(int dummyid, struct timespec* tp)
-{
-  timeBeginPeriod(1);
-  static DWORD lasttime = timeGetTime();
-  timeEndPeriod(1);
-  static struct timespec monotime = {2678400, 0}; // 1month offset(24*3600*31)
-  timeBeginPeriod(1);
-  DWORD now = timeGetTime();
-  timeEndPeriod(1);
-  DWORD elapsed = now-lasttime;
-  monotime.tv_sec += elapsed/1000;
-  monotime.tv_nsec += elapsed%1000*1000000;
-  if(monotime.tv_nsec >= 1000000000) {
-    monotime.tv_sec += monotime.tv_nsec/1000000000;
-    monotime.tv_nsec %= 1000000000;
-  }
-  lasttime = now;
-  *tp = monotime;
-  return 0;
-}
+namespace aria2 {
+
+class EvictSocketPoolCommand : public TimeBasedCommand {
+public:
+  EvictSocketPoolCommand(cuid_t cuid, DownloadEngine* e,
+                         std::chrono::seconds interval);
+  virtual ~EvictSocketPoolCommand();
+  virtual void preProcess() CXX11_OVERRIDE;
+  virtual void process() CXX11_OVERRIDE;
+};
+
+} // namespace aria2
+
+#endif // D_EVICT_SOCKET_POOL_COMMAND_H

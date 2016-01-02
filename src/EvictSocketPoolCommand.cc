@@ -1,7 +1,8 @@
+/* <!-- copyright */
 /*
  * aria2 - The high speed download utility
  *
- * Copyright (C) 2010 Tatsuhiro Tsujikawa
+ * Copyright (C) 2015 Tatsuhiro Tsujikawa
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,11 +32,31 @@
  * files in the program, then also delete it here.
  */
 /* copyright --> */
-#ifndef D_CLOCK_GETTIME_MINGW_H
-#define D_CLOCK_GETTIME_MINGW_H
+#include "EvictSocketPoolCommand.h"
+#include "RequestGroupMan.h"
+#include "DownloadEngine.h"
 
-#include "timespec.h"
+namespace aria2 {
 
-int clock_gettime(int dummyid, struct timespec* tp);
+EvictSocketPoolCommand::EvictSocketPoolCommand(cuid_t cuid, DownloadEngine* e,
+                                               std::chrono::seconds interval)
+    : TimeBasedCommand(cuid, e, std::move(interval), true)
+{
+}
 
-#endif // D_CLOCK_GETTIME_MINGW_H
+EvictSocketPoolCommand::~EvictSocketPoolCommand() {}
+
+void EvictSocketPoolCommand::preProcess()
+{
+  if (getDownloadEngine()->getRequestGroupMan()->downloadFinished() ||
+      getDownloadEngine()->isHaltRequested()) {
+    enableExit();
+  }
+}
+
+void EvictSocketPoolCommand::process()
+{
+  getDownloadEngine()->evictSocketPool();
+}
+
+} // namespace aria2

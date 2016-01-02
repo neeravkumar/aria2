@@ -33,6 +33,8 @@
  */
 /* copyright --> */
 
+// clang-format off
+
 #define TEXT_DIR                                                        \
   _(" -d, --dir=DIR                The directory to store the downloaded file.")
 #define TEXT_OUT                                                        \
@@ -453,7 +455,9 @@
     "                              a single byte, then force the download to fail.\n" \
     "                              Specify 0 to disable this option.\n" \
     "                              This options is effective only when using\n" \
-    "                              HTTP/FTP servers.")
+    "                              HTTP/FTP servers. The number of retry attempt is\n" \
+    "                              counted toward --max-tries, so it should be\n" \
+    "                              configured too.")
 #define TEXT_URI_SELECTOR                                               \
   _(" --uri-selector=SELECTOR      Specify URI selection algorithm.\n"  \
     "                              If 'inorder' is given, URI is tried in the order\n" \
@@ -1040,3 +1044,18 @@
     "                              public key when SFTP is used. If this option is\n" \
     "                              not set, which is default, no validation takes\n" \
     "                              place.")
+#define TEXT_SOCKET_RECV_BUFFER_SIZE                                    \
+  _(" --socket-recv-buffer-size=SIZE\n"                                 \
+    "                              Set the maximum socket receive buffer in bytes.\n" \
+    "                              Specifing 0 will disable this option. This value\n" \
+    "                              will be set to socket file descriptor using\n" \
+    "                              SO_RCVBUF socket option with setsockopt() call.")
+#define TEXT_BT_ENABLE_HOOK_AFTER_HASH_CHECK                            \
+  _(" --bt-enable-hook-after-hash-check[=true|false] Allow hook command invocation\n" \
+    "                              after hash check (see -V option) in BitTorrent\n" \
+    "                              download. By default, when hash check succeeds,\n" \
+    "                              the command given by --on-bt-download-complete\n" \
+    "                              is executed. To disable this action, give false\n" \
+    "                              to this option.")
+
+// clang-format on

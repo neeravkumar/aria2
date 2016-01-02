@@ -1,7 +1,7 @@
 aria2 - The ultra fast download utility
 =======================================
 :Author:    Tatsuhiro Tsujikawa
-:Email:     t-tujikawa_at_users_dot_sourceforge_dot_net
+:Email:     tatsuhiro.t_at_gmail_dot_com
 
 Disclaimer
 ----------
@@ -20,12 +20,12 @@ downloaded from HTTP(S)/FTP/SFTP is uploaded to the BitTorrent
 swarm. Using Metalink's chunk checksums, aria2 automatically validates
 chunks of data while downloading a file like BitTorrent.
 
-The project page is located at http://aria2.sourceforge.net/.
+The project page is located at https://aria2.github.io/.
 
 See `aria2 Online Manual
-<http://aria2.sourceforge.net/manual/en/html/>`_ (`Russian translation
-<http://aria2.sourceforge.net/manual/ru/html/>`_, `Portuguese
-translation <http://aria2.sourceforge.net/manual/pt/html/>`_) to learn
+<https://aria2.github.io/manual/en/html/>`_ (`Russian translation
+<https://aria2.github.io/manual/ru/html/>`_, `Portuguese
+translation <https://aria2.github.io/manual/pt/html/>`_) to learn
 how to use aria2.
 
 Features
@@ -214,6 +214,11 @@ following packages to get autoconf macros:
 
 * libxml2-dev
 * libcppunit-dev
+* autoconf
+* automake
+* autotools-dev
+* autopoint
+* libtool
 
 And run following command to generate configure script and other files
 necessary to build the program::
@@ -309,6 +314,7 @@ following libraries have been built for cross-compile:
 * expat
 * sqlite3
 * zlib
+* libssh2
 * cppunit
 
 Some environment variables can be adjusted to change build settings:
@@ -349,6 +355,8 @@ assumes the following libraries have been built for cross-compile:
 * c-ares
 * openssl
 * expat
+* zlib
+* libssh2
 
 When building the above libraries, make sure that disable shared
 library and enable only static library. We are going to link those
@@ -392,10 +400,10 @@ Building documentation
 documentation. aria2 man pages will be build when you run ``make`` if
 they are not up-to-date.  You can also build HTML version of aria2 man
 page by ``make html``. The HTML version manual is also available at
-`online <http://aria2.sourceforge.net/manual/en/html/>`_ (`Russian
-translation <http://aria2.sourceforge.net/manual/ru/html/>`_,
+`online <https://aria2.github.io/manual/en/html/>`_ (`Russian
+translation <https://aria2.github.io/manual/ru/html/>`_,
 `Portuguese translation
-<http://aria2.sourceforge.net/manual/pt/html/>`_).
+<https://aria2.github.io/manual/pt/html/>`_).
 
 BitTorrent
 -----------
@@ -427,9 +435,11 @@ DHT
 ~~~
 
 aria2 supports mainline compatible DHT. By default, the routing table
-for IPv4 DHT is saved to ``$HOME/.aria2/dht.dat`` and the routing
-table for IPv6 DHT is saved to ``$HOME/.aria2/dht6.dat``. aria2 uses
-same port number to listen on for both IPv4 and IPv6 DHT.
+for IPv4 DHT is saved to ``$XDG_CACHE_HOME/aria2/dht.dat`` and the
+routing table for IPv6 DHT is saved to
+``$XDG_CACHE_HOME/aria2/dht6.dat`` unless files exist at
+``$HOME/.aria2/dht.dat`` or ``$HOME/.aria2/dht6.dat``. aria2 uses same
+port number to listen on for both IPv4 and IPv6 DHT.
 
 UDP tracker
 ~~~~~~~~~~~
@@ -529,9 +539,8 @@ documentation to know how to use API.
 References
 ----------
 
-* `aria2 Online Manual <http://aria2.sourceforge.net/manual/en/html/>`_
-* http://aria2.sourceforge.net/
-* https://github.com/tatsuhiro-t/aria2
+* `aria2 Online Manual <https://aria2.github.io/manual/en/html/>`_
+* https://aria2.github.io/
 * `RFC 959 FILE TRANSFER PROTOCOL (FTP) <http://tools.ietf.org/html/rfc959>`_
 * `RFC 1738 Uniform Resource Locators (URL) <http://tools.ietf.org/html/rfc1738>`_
 * `RFC 2428 FTP Extensions for IPv6 and NATs <http://tools.ietf.org/html/rfc2428>`_

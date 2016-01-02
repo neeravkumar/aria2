@@ -170,8 +170,11 @@ HTTP/FTP/SFTP Options
 
   If aria2 receives "file not found" status from the remote HTTP/FTP
   servers NUM times without getting a single byte, then force the
-  download to fail. Specify ``0`` to disable this option. This options is
-  effective only when using HTTP/FTP servers.
+  download to fail. Specify ``0`` to disable this option. This options
+  is effective only when using HTTP/FTP servers.  The number of retry
+  attempt is counted toward :option:`--max-tries`, so it should be
+  configured too.
+
   Default: ``0``
 
 .. option:: -m, --max-tries=<N>
@@ -639,6 +642,14 @@ BitTorrent Specific Options
   queue gets started. But be aware that seeding item is still
   recognized as active download in RPC method.  Default: ``false``
 
+.. option:: --bt-enable-hook-after-hash-check[=true|false]
+
+  Allow hook command invocation after hash check (see :option:`-V`
+  option) in BitTorrent download. By default, when hash check
+  succeeds, the command given by :option:`--on-bt-download-complete`
+  is executed. To disable this action, give ``false`` to this option.
+  Default: ``true``
+
 .. option:: --bt-enable-lpd[=true|false]
 
   Enable Local Peer Discovery.  If a private flag is set in a torrent,
@@ -801,12 +812,14 @@ BitTorrent Specific Options
 .. option:: --dht-file-path=<PATH>
 
   Change the IPv4 DHT routing table file to PATH.
-  Default: ``$HOME/.aria2/dht.dat``
+  Default: ``$HOME/.aria2/dht.dat`` if present, otherwise
+  ``$XDG_CACHE_HOME/aria2/dht.dat``.
 
 .. option:: --dht-file-path6=<PATH>
 
   Change the IPv6 DHT routing table file to PATH.
-  Default: ``$HOME/.aria2/dht6.dat``
+  Default: ``$HOME/.aria2/dht6.dat`` if present, otherwise
+  ``$XDG_CACHE_HOME/aria2/dht6.dat``.
 
 .. option:: --dht-listen-addr6=<ADDR>
 
@@ -1181,7 +1194,8 @@ Advanced Options
 .. option:: --conf-path=<PATH>
 
   Change the configuration file path to PATH.
-  Default: ``$HOME/.aria2/aria2.conf``
+  Default: ``$HOME/.aria2/aria2.conf`` if present, otherwise
+  ``$XDG_CONFIG_HOME/aria2/aria2.conf``.
 
 .. option:: --console-log-level=<LEVEL>
 
@@ -1203,6 +1217,11 @@ Advanced Options
   lot of URIs to download.  If ``false`` is given, aria2 reads all URIs
   and options at startup.
   Default: ``false``
+
+  .. Warning::
+
+    :option:`--deferred-input` option will be disabled when
+    :option:`--save-session` is used together.
 
 .. option:: --disable-ipv6[=true|false]
 
@@ -1537,22 +1556,30 @@ Advanced Options
     use meta data (e.g., BitTorrent and Metalink). In this case, there
     are some restrictions.
 
-    1. magnet URI, and followed by torrent download
-        GID of BitTorrent meta data download is saved.
-    2. URI to torrent file, and followed by torrent download
-        GID of torrent file download is saved.
-    3. URI to metalink file, and followed by file downloads described in metalink file
-        GID of metalink file download is saved.
-    4. local torrent file
-        GID of torrent download is saved.
-    5. local metalink file
-        Any meaningful GID is not saved.
+    magnet URI, and followed by torrent download
+       GID of BitTorrent meta data download is saved.
+    URI to torrent file, and followed by torrent download
+       GID of torrent file download is saved.
+    URI to metalink file, and followed by file downloads described in metalink file
+       GID of metalink file download is saved.
+    local torrent file
+       GID of torrent download is saved.
+    local metalink file
+       Any meaningful GID is not saved.
 
 .. option:: --save-session-interval=<SEC>
 
   Save error/unfinished downloads to a file specified by
   :option:`--save-session` option every SEC seconds. If ``0`` is
   given, file will be saved only when aria2 exits. Default: ``0``
+
+
+.. option:: --socket-recv-buffer-size=<SIZE>
+
+  Set the maximum socket receive buffer in bytes.  Specifing ``0``
+  will disable this option. This value will be set to socket file
+  descriptor using ``SO_RCVBUF`` socket option with ``setsockopt()``
+  call.  Default: ``0``
 
 .. option:: --stop=<SEC>
 
@@ -1839,10 +1866,12 @@ FILES
 aria2.conf
 ~~~~~~~~~~
 
-By default, aria2 parses ``$HOME/.aria2/aria2.conf`` as a
-configuration file. You can specify the path to configuration file
-using :option:`--conf-path` option.  If you don't want to use the
-configuration file, use :option:`--no-conf` option.
+By default, aria2 checks whether the legacy path
+``$HOME/.aria2/aria2.conf`` is present, otherwise it parses
+``$XDG_CONFIG_HOME/aria2/aria2.conf`` as its configuration file.  You
+can specify the path to configuration file using :option:`--conf-path`
+option.  If you don't want to use the configuration file, use
+:option:`--no-conf` option.
 
 The configuration file is a text file and has 1 option per each
 line. In each line, you can specify name-value pair in the format:
@@ -1867,9 +1896,11 @@ lines beginning ``#`` are treated as comments::
 dht.dat
 ~~~~~~~~
 
-By default, the routing table of IPv4 DHT is saved to the path
-``$HOME/.aria2/dht.dat`` and the routing table of IPv6 DHT is saved to
-the path ``$HOME/.aria2/dht6.dat``.
+Unless the legacy file paths ``$HOME/.aria2/dht.dat`` and
+``$HOME/.aria2/dht6.dat`` are pointing to existing files, the routing
+table of IPv4 DHT is saved to the path
+``$XDG_CACHE_HOME/aria2/dht.dat`` and the routing table of IPv6 DHT is
+saved to the path ``$XDG_CACHE_HOME/aria2/dht6.dat``.
 
 Netrc
 ~~~~~
@@ -1947,6 +1978,7 @@ of URIs. These optional lines must start with white space(s).
   * :option:`always-resume <--always-resume>`
   * :option:`async-dns <--async-dns>`
   * :option:`auto-file-renaming <--auto-file-renaming>`
+  * :option:`bt-enable-hook-after-hash-check <--bt-enable-hook-after-hash-check>`
   * :option:`bt-enable-lpd <--bt-enable-lpd>`
   * :option:`bt-exclude-tracker <--bt-exclude-tracker>`
   * :option:`bt-external-ip <--bt-external-ip>`
@@ -2196,6 +2228,10 @@ to provide the token as the first parameter as described above.
   interface. Therefore it is recommended to prefer Batch or `system.multicall`
   requests when appropriate.
 
+  `system.listMethods` can be executed without token.  Since it just
+  returns the all available methods, and does not alter anything, it
+  is safe without secret token.
+
 Methods
 ~~~~~~~
 
@@ -2298,7 +2334,7 @@ For information on the *secret* parameter, see :ref:`rpc_auth`.
 
     >>> import xmlrpclib
     >>> s = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
-    >>> s.aria2.addTorrent(xmlrpclib.Binary(open('file.torrent').read()))
+    >>> s.aria2.addTorrent(xmlrpclib.Binary(open('file.torrent', mode='rb').read()))
     '2089b05ecca3d829'
 
 .. function:: aria2.addMetalink([secret], metalink[, options[, position]])
@@ -2344,7 +2380,7 @@ For information on the *secret* parameter, see :ref:`rpc_auth`.
 
     >>> import xmlrpclib
     >>> s = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
-    >>> s.aria2.addMetalink(xmlrpclib.Binary(open('file.meta4').read()))
+    >>> s.aria2.addMetalink(xmlrpclib.Binary(open('file.meta4', mode='rb').read()))
     ['2089b05ecca3d829']
 
 .. function:: aria2.remove([secret], gid)
@@ -2484,6 +2520,10 @@ For information on the *secret* parameter, see :ref:`rpc_auth`.
     The code of the last error for this item, if any. The value
     is a string. The error codes are defined in the `EXIT STATUS`_ section.
     This value is only available for stopped/completed downloads.
+
+  ``errorMessage``
+    The (hopefully) human readable error message associated to
+    ``errorCode``.
 
   ``followedBy``
     List of GIDs which are generated as the result of this
@@ -3388,10 +3428,40 @@ For information on the *secret* parameter, see :ref:`rpc_auth`.
     >>> s = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
     >>> mc = xmlrpclib.MultiCall(s)
     >>> mc.aria2.addUri(['http://example.org/file'])
-    >>> mc.aria2.addTorrent(xmlrpclib.Binary(open('file.torrent').read()))
+    >>> mc.aria2.addTorrent(xmlrpclib.Binary(open('file.torrent', mode='rb').read()))
     >>> r = mc()
     >>> tuple(r)
     ('2089b05ecca3d829', 'd2703803b52216d1')
+
+.. function:: system.listMethods()
+
+  This method returns the all available RPC methods in an array of
+  string.  Unlike other methods, this method does not require secret
+  token.  This is safe because this method jsut returns the available
+  method names.
+
+  **JSON-RPC Example**
+  ::
+
+    >>> import urllib2, json
+    >>> from pprint import pprint
+    >>> jsonreq = json.dumps({'jsonrpc':'2.0', 'id':'qwer',
+    ...                       'method':'system.listMethods'})
+    >>> c = urllib2.urlopen('http://localhost:6800/jsonrpc', jsonreq)
+    >>> pprint(json.loads(c.read()))
+    {u'id': u'qwer',
+     u'jsonrpc': u'2.0',
+     u'result': [u'aria2.addUri',
+                 u'aria2.addTorrent',
+    ...
+
+  **XML-RPC Example**
+  ::
+
+    >>> import xmlrpclib
+    >>> s = xmlrpclib.ServerProxy('http://localhost:6800/rpc')
+    >>> s.system.listMethods()
+    ['aria2.addUri', 'aria2.addTorrent', ...
 
 Error Handling
 ~~~~~~~~~~~~~~
@@ -4147,7 +4217,7 @@ Encrypt the whole payload using ARC4 (obfuscation):
 
 SEE ALSO
 --------
-Project Web Site: http://aria2.sourceforge.net/
+Project Web Site: https://aria2.github.io/
 
 Metalink Homepage: http://www.metalinker.org/
 
@@ -4155,7 +4225,7 @@ The Metalink Download Description Format: :rfc:`5854`
 
 COPYRIGHT
 ---------
-Copyright (C) 2006, 2014 Tatsuhiro Tsujikawa
+Copyright (C) 2006, 2015 Tatsuhiro Tsujikawa
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

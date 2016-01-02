@@ -10,9 +10,12 @@ EXTRA_DIST = config.rpath \
 	     android-config android-make \
 	     makerelease-osx.mk osx-package/DS_Store osx-package/etc/paths.d/aria2c osx-package/etc/manpaths.d/aria2 \
 	     Dockerfile.mingw \
+	     Dockerfile.raspberrypi \
 	     examples/libaria2ex.cc examples/libaria2wx.cc
 
 dist_doc_DATA = README README.rst README.html
+
+.PHONY: clang-format
 
 if HAVE_RST2HTML
 README.html: README.rst
@@ -26,3 +29,11 @@ endif # !HAVE_RST2HTML
 
 dist_noinst_DATA = LICENSE.OpenSSL
 
+# Format source files using clang-format.  Don't format source files
+# under deps directory since we are not responsible for thier coding
+# style.
+clang-format:
+	CLANGFORMAT=`git config --get clangformat.binary`; \
+	test -z $${CLANGFORMAT} && CLANGFORMAT="clang-format"; \
+	$${CLANGFORMAT} -i src/*.{c,cc,h} src/includes/aria2/*.h \
+	examples/*.cc test/*.{cc,h}

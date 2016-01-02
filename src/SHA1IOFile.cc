@@ -1,7 +1,8 @@
+/* <!-- copyright */
 /*
  * aria2 - The high speed download utility
  *
- * Copyright (C) 2010 Tatsuhiro Tsujikawa
+ * Copyright (C) 2015 Tatsuhiro Tsujikawa
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,11 +32,51 @@
  * files in the program, then also delete it here.
  */
 /* copyright --> */
-#ifndef D_CLOCK_GETTIME_OSX_H
-#define D_CLOCK_GETTIME_OSX_H
+#include "SHA1IOFile.h"
 
-#include "timespec.h"
+#include <cassert>
 
-int clock_gettime(int dummyid, struct timespec* tp);
+namespace aria2 {
 
-#endif // D_CLOCK_GETTIME_OSX_H
+SHA1IOFile::SHA1IOFile() : sha1_(MessageDigest::sha1()) {}
+
+std::string SHA1IOFile::digest() { return sha1_->digest(); }
+
+size_t SHA1IOFile::onRead(void* ptr, size_t count)
+{
+  assert(0);
+  return 0;
+}
+
+size_t SHA1IOFile::onWrite(const void* ptr, size_t count)
+{
+  sha1_->update(ptr, count);
+
+  return count;
+}
+
+char* SHA1IOFile::onGets(char* s, int size)
+{
+  assert(0);
+  return nullptr;
+}
+
+int SHA1IOFile::onVprintf(const char* format, va_list va)
+{
+  assert(0);
+  return -1;
+}
+
+int SHA1IOFile::onFlush() { return 0; }
+
+int SHA1IOFile::onClose() { return 0; }
+
+bool SHA1IOFile::onSupportsColor() { return false; }
+
+bool SHA1IOFile::isError() const { return false; }
+
+bool SHA1IOFile::isEOF() const { return false; }
+
+bool SHA1IOFile::isOpen() const { return true; }
+
+} // namespace aria2

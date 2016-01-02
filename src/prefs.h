@@ -312,6 +312,8 @@ extern PrefPtr PREF_PAUSE_METADATA;
 extern PrefPtr PREF_RLIMIT_NOFILE;
 // values: SSLv3 | TLSv1 | TLSv1.1 | TLSv1.2
 extern PrefPtr PREF_MIN_TLS_VERSION;
+// value: 1*digit
+extern PrefPtr PREF_SOCKET_RECV_BUFFER_SIZE;
 
 /**
  * FTP related preferences
@@ -492,6 +494,8 @@ extern PrefPtr PREF_BT_REMOVE_UNSELECTED_FILE;
 extern PrefPtr PREF_BT_DETACH_SEED_ONLY;
 // values: true | false
 extern PrefPtr PREF_BT_FORCE_ENCRYPTION;
+// values: true | false
+extern PrefPtr PREF_BT_ENABLE_HOOK_AFTER_HASH_CHECK;
 
 /**
  * Metalink related preferences

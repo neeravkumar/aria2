@@ -39,9 +39,11 @@ class HttpRequestTest : public CppUnit::TestFixture {
   CPPUNIT_TEST(testEnableAcceptEncoding);
   CPPUNIT_TEST(testConditionalRequest);
   CPPUNIT_TEST_SUITE_END();
+
 private:
   std::unique_ptr<Option> option_;
   std::unique_ptr<AuthConfigFactory> authConfigFactory_;
+
 public:
   void setUp()
   {
@@ -68,34 +70,33 @@ public:
   void testConditionalRequest();
 };
 
-
-CPPUNIT_TEST_SUITE_REGISTRATION( HttpRequestTest );
+CPPUNIT_TEST_SUITE_REGISTRATION(HttpRequestTest);
 
 void HttpRequestTest::testGetStartByte()
 {
   HttpRequest httpRequest;
-  auto p = std::make_shared<Piece>(1, 1024);
-  auto segment = std::make_shared<PiecedSegment>(1024, p);
-  auto fileEntry = std::make_shared<FileEntry>("file", 1024*10, 0);
+  auto p = std::make_shared<Piece>(1, 1_k);
+  auto segment = std::make_shared<PiecedSegment>(1_k, p);
+  auto fileEntry = std::make_shared<FileEntry>("file", 10_k, 0);
 
   CPPUNIT_ASSERT_EQUAL((int64_t)0LL, httpRequest.getStartByte());
 
   httpRequest.setSegment(segment);
   httpRequest.setFileEntry(fileEntry);
 
-  CPPUNIT_ASSERT_EQUAL((int64_t)1024LL, httpRequest.getStartByte());
+  CPPUNIT_ASSERT_EQUAL((int64_t)1_k, httpRequest.getStartByte());
 }
 
 void HttpRequestTest::testGetEndByte()
 {
   size_t index = 1;
-  size_t length = 1024*1024-1024;
-  size_t segmentLength = 1024*1024;
+  size_t length = 1_m - 1_k;
+  size_t segmentLength = 1_m;
 
   HttpRequest httpRequest;
   auto piece = std::make_shared<Piece>(index, length);
   auto segment = std::make_shared<PiecedSegment>(segmentLength, piece);
-  auto fileEntry = std::make_shared<FileEntry>("file", segmentLength*10, 0);
+  auto fileEntry = std::make_shared<FileEntry>("file", segmentLength * 10, 0);
 
   CPPUNIT_ASSERT_EQUAL((int64_t)0LL, httpRequest.getEndByte());
 
@@ -110,13 +111,13 @@ void HttpRequestTest::testGetEndByte()
   httpRequest.setRequest(request);
   httpRequest.setFileEntry(fileEntry);
 
-  CPPUNIT_ASSERT_EQUAL((int64_t)(segmentLength*index+length-1),
+  CPPUNIT_ASSERT_EQUAL((int64_t)(segmentLength * index + length - 1),
                        httpRequest.getEndByte());
 
   // The end byte of FileEntry are placed inside segment
-  fileEntry->setLength(segmentLength+100);
+  fileEntry->setLength(segmentLength + 100);
 
-  CPPUNIT_ASSERT_EQUAL((int64_t)(segmentLength*index+100-1),
+  CPPUNIT_ASSERT_EQUAL((int64_t)(segmentLength * index + 100 - 1),
                        httpRequest.getEndByte());
 
   request->setPipeliningHint(false);
@@ -130,9 +131,9 @@ void HttpRequestTest::testCreateRequest()
   request->supportsPersistentConnection(true);
   request->setUri("http://localhost:8080/archives/aria2-1.0.0.tar.bz2");
 
-  auto p = std::make_shared<Piece>(0, 1024);
-  auto segment = std::make_shared<PiecedSegment>(1024, p);
-  auto fileEntry = std::make_shared<FileEntry>("file", 1024*1024*10, 0);
+  auto p = std::make_shared<Piece>(0, 1_k);
+  auto segment = std::make_shared<PiecedSegment>(1_k, p);
+  auto fileEntry = std::make_shared<FileEntry>("file", 10_m, 0);
 
   HttpRequest httpRequest;
   httpRequest.disableContentEncoding();
@@ -146,69 +147,70 @@ void HttpRequestTest::testCreateRequest()
   request->setPipeliningHint(true);
 
   std::string expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Range: bytes=0-1023\r\n"
-    "\r\n";
+                             "User-Agent: aria2\r\n"
+                             "Accept: */*\r\n"
+                             "Host: localhost:8080\r\n"
+                             "Pragma: no-cache\r\n"
+                             "Cache-Control: no-cache\r\n"
+                             "Range: bytes=0-1023\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setPipeliningHint(false);
 
   expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
-  p.reset(new Piece(1, 1024*1024));
-  segment.reset(new PiecedSegment(1024*1024, p));
+  p.reset(new Piece(1, 1_m));
+  segment.reset(new PiecedSegment(1_m, p));
   httpRequest.setSegment(segment);
 
   expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Range: bytes=1048576-\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Range: bytes=1048576-\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setPipeliningHint(true);
 
   expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Range: bytes=1048576-2097151\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Range: bytes=1048576-2097151\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   // redirection set persistent connection flag to true
-  request->redirectUri("http://localhost:8080/archives/download/aria2-1.0.0.tar.bz2");
+  request->redirectUri(
+      "http://localhost:8080/archives/download/aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /archives/download/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Range: bytes=1048576-2097151\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Range: bytes=1048576-2097151\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -219,13 +221,13 @@ void HttpRequestTest::testCreateRequest()
   request->setKeepAliveHint(true);
 
   expectedText = "GET /archives/download/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Range: bytes=1048576-\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Range: bytes=1048576-\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -233,61 +235,65 @@ void HttpRequestTest::testCreateRequest()
 
   request->resetUri();
 
-  p.reset(new Piece(0, 1024*1024));
-  segment.reset(new PiecedSegment(1024*1024, p));
+  p.reset(new Piece(0, 1_m));
+  segment.reset(new PiecedSegment(1_m, p));
   httpRequest.setSegment(segment);
 
   // enable http auth
   option_->put(PREF_HTTP_USER, "aria2user");
   option_->put(PREF_HTTP_PASSWD, "aria2passwd");
 
-  CPPUNIT_ASSERT(authConfigFactory_->activateBasicCred
-                 ("localhost", 8080, "/", option_.get()));
+  CPPUNIT_ASSERT(authConfigFactory_->activateBasicCred("localhost", 8080, "/",
+                                                       option_.get()));
 
   expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost:8080\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   // enable http proxy auth
   auto proxyRequest = std::make_shared<Request>();
-  CPPUNIT_ASSERT(proxyRequest->setUri
-                 ("http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
+  CPPUNIT_ASSERT(proxyRequest->setUri(
+      "http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
   httpRequest.setProxyRequest(proxyRequest);
 
-  expectedText = "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Proxy-Authorization: Basic YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+  expectedText =
+      "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost:8080\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "Proxy-Authorization: Basic "
+      "YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
+      "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setPipeliningHint(true);
 
-  expectedText = "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Range: bytes=0-1048575\r\n"
-    "Connection: Keep-Alive\r\n"
-    "Proxy-Authorization: Basic YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+  expectedText =
+      "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost:8080\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Range: bytes=0-1048575\r\n"
+      "Connection: Keep-Alive\r\n"
+      "Proxy-Authorization: Basic "
+      "YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
+      "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -296,15 +302,16 @@ void HttpRequestTest::testCreateRequest()
   // turn off proxy auth
   CPPUNIT_ASSERT(proxyRequest->setUri("http://localhost:9000"));
 
-  expectedText = "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+  expectedText =
+      "GET http://localhost:8080/archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost:8080\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -318,13 +325,12 @@ void HttpRequestTest::testCreateRequest_ftp()
   request->setUri("ftp://localhost:8080/archives/aria2-1.0.0.tar.bz2");
 
   auto proxyRequest = std::make_shared<Request>();
-  CPPUNIT_ASSERT(proxyRequest->setUri
-                 ("http://localhost:9000"));
+  CPPUNIT_ASSERT(proxyRequest->setUri("http://localhost:9000"));
 
   HttpRequest httpRequest;
-  auto p = std::make_shared<Piece>(0, 1024*1024);
-  auto segment = std::make_shared<PiecedSegment>(1024*1024, p);
-  auto fileEntry = std::make_shared<FileEntry>("file", 1024*1024*10, 0);
+  auto p = std::make_shared<Piece>(0, 1_m);
+  auto segment = std::make_shared<PiecedSegment>(1_m, p);
+  auto fileEntry = std::make_shared<FileEntry>("file", 10_m, 0);
 
   httpRequest.disableContentEncoding();
   httpRequest.setRequest(request);
@@ -335,43 +341,44 @@ void HttpRequestTest::testCreateRequest_ftp()
   httpRequest.setProxyRequest(proxyRequest);
 
   std::string expectedText =
-    "GET ftp://aria2user@localhost:8080/archives/aria2-1.0.0.tar.bz2"
-    " HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+      "GET ftp://aria2user@localhost:8080/archives/aria2-1.0.0.tar.bz2"
+      " HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost:8080\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   // test proxy authorization
-  CPPUNIT_ASSERT(proxyRequest->setUri
-                 ("http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
+  CPPUNIT_ASSERT(proxyRequest->setUri(
+      "http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
 
   expectedText =
-    "GET ftp://aria2user@localhost:8080/archives/aria2-1.0.0.tar.bz2"
-    " HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Proxy-Authorization: Basic YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
-    "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
-    "\r\n";
+      "GET ftp://aria2user@localhost:8080/archives/aria2-1.0.0.tar.bz2"
+      " HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost:8080\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "Proxy-Authorization: Basic "
+      "YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
+      "Authorization: Basic YXJpYTJ1c2VyOmFyaWEycGFzc3dk\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
 
-template<typename InputIterator>
+template <typename InputIterator>
 void foo(CookieStorage& st, InputIterator first, InputIterator last, time_t t)
 {
-  for(; first != last; ++first) {
+  for (; first != last; ++first) {
     st.store(*first, t);
   }
 }
@@ -379,21 +386,25 @@ void HttpRequestTest::testCreateRequest_with_cookie()
 {
   auto request = std::make_shared<Request>();
   request->setUri("http://localhost/archives/aria2-1.0.0.tar.bz2");
-  auto p = std::make_shared<Piece>(0, 1024*1024);
-  auto segment = std::make_shared<PiecedSegment>(1024*1024, p);
-  auto fileEntry = std::make_shared<FileEntry>("file", 1024*1024*10, 0);
+  auto p = std::make_shared<Piece>(0, 1_m);
+  auto segment = std::make_shared<PiecedSegment>(1_m, p);
+  auto fileEntry = std::make_shared<FileEntry>("file", 10_m, 0);
 
   auto st = CookieStorage{};
-  CPPUNIT_ASSERT(st.store(createCookie("name1", "value1", "localhost", true,
-                                       "/archives", false), 0));
+  CPPUNIT_ASSERT(st.store(
+      createCookie("name1", "value1", "localhost", true, "/archives", false),
+      0));
   CPPUNIT_ASSERT(st.store(createCookie("name2", "value2", "localhost", true,
-                                       "/archives/download",  false), 0));
+                                       "/archives/download", false),
+                          0));
   CPPUNIT_ASSERT(st.store(createCookie("name3", "value3", "aria2.org", false,
-                                       "/archives/download",  false), 0));
-  CPPUNIT_ASSERT(st.store(createCookie("name4", "value4", "aria2.org", false,
-                                       "/archives/", true), 0));
-  CPPUNIT_ASSERT(st.store(createCookie("name5", "value5", "example.org", false,
-                                       "/", false), 0));
+                                       "/archives/download", false),
+                          0));
+  CPPUNIT_ASSERT(st.store(
+      createCookie("name4", "value4", "aria2.org", false, "/archives/", true),
+      0));
+  CPPUNIT_ASSERT(st.store(
+      createCookie("name5", "value5", "example.org", false, "/", false), 0));
 
   HttpRequest httpRequest;
 
@@ -406,42 +417,42 @@ void HttpRequestTest::testCreateRequest_with_cookie()
   httpRequest.setOption(option_.get());
 
   std::string expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name1=value1;\r\n"
-    "\r\n";
+                             "User-Agent: aria2\r\n"
+                             "Accept: */*\r\n"
+                             "Host: localhost\r\n"
+                             "Pragma: no-cache\r\n"
+                             "Cache-Control: no-cache\r\n"
+                             "Connection: close\r\n"
+                             "Cookie: name1=value1;\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setUri("http://localhost/archives/download/aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /archives/download/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name2=value2;name1=value1;\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Cookie: name2=value2;name1=value1;\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setUri("http://www.aria2.org/archives/download/aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /archives/download/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: www.aria2.org\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name3=value3;\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: www.aria2.org\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Cookie: name3=value3;\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -449,14 +460,14 @@ void HttpRequestTest::testCreateRequest_with_cookie()
                   "aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /archives/download/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: www.aria2.org\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name3=value3;name4=value4;\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: www.aria2.org\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Cookie: name3=value3;name4=value4;\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -464,28 +475,28 @@ void HttpRequestTest::testCreateRequest_with_cookie()
   request->setUri("https://www.aria2.org/archives/aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: www.aria2.org\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name4=value4;\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: www.aria2.org\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Cookie: name4=value4;\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   request->setUri("http://example.org/aria2-1.0.0.tar.bz2");
 
   expectedText = "GET /aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: example.org\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Cookie: name5=value5;\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: example.org\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Cookie: name5=value5;\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -493,7 +504,8 @@ void HttpRequestTest::testCreateRequest_with_cookie()
 void HttpRequestTest::testCreateRequest_query()
 {
   auto request = std::make_shared<Request>();
-  request->setUri("http://localhost/wiki?id=9ad5109a-b8a5-4edf-9373-56a1c34ae138");
+  request->setUri(
+      "http://localhost/wiki?id=9ad5109a-b8a5-4edf-9373-56a1c34ae138");
   HttpRequest httpRequest;
   httpRequest.disableContentEncoding();
   httpRequest.setRequest(request);
@@ -501,14 +513,14 @@ void HttpRequestTest::testCreateRequest_query()
   httpRequest.setOption(option_.get());
 
   std::string expectedText =
-    "GET /wiki?id=9ad5109a-b8a5-4edf-9373-56a1c34ae138 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+      "GET /wiki?id=9ad5109a-b8a5-4edf-9373-56a1c34ae138 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n"
+      "Host: localhost\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -540,38 +552,36 @@ void HttpRequestTest::testCreateRequest_endOffsetOverride()
   httpRequest.setRequest(request);
   httpRequest.setAuthConfigFactory(authConfigFactory_.get());
   httpRequest.setOption(option_.get());
-  auto p = std::make_shared<Piece>(0, 1024*1024);
-  auto segment = std::make_shared<PiecedSegment>(1024*1024, p);
+  auto p = std::make_shared<Piece>(0, 1_m);
+  auto segment = std::make_shared<PiecedSegment>(1_m, p);
   httpRequest.setSegment(segment);
-  httpRequest.setEndOffsetOverride(1024*1024*1024);
-  auto fileEntry = std::make_shared<FileEntry>("file", 1024*1024*1024*10LL, 0);
+  httpRequest.setEndOffsetOverride(1_g);
+  auto fileEntry = std::make_shared<FileEntry>("file", 10_g, 0);
   httpRequest.setFileEntry(fileEntry);
   // End byte is passed if it is not 0
-  std::string expectedText =
-    "GET /myfile HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Range: bytes=0-1073741823\r\n"
-    "\r\n";
+  std::string expectedText = "GET /myfile HTTP/1.1\r\n"
+                             "User-Agent: aria2\r\n"
+                             "Accept: */*\r\n"
+                             "Host: localhost\r\n"
+                             "Pragma: no-cache\r\n"
+                             "Cache-Control: no-cache\r\n"
+                             "Connection: close\r\n"
+                             "Range: bytes=0-1073741823\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   segment->updateWrittenLength(1);
 
-  expectedText =
-    "GET /myfile HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "Range: bytes=1-1073741823\r\n"
-    "\r\n";
+  expectedText = "GET /myfile HTTP/1.1\r\n"
+                 "User-Agent: aria2\r\n"
+                 "Accept: */*\r\n"
+                 "Host: localhost\r\n"
+                 "Pragma: no-cache\r\n"
+                 "Cache-Control: no-cache\r\n"
+                 "Connection: close\r\n"
+                 "Range: bytes=1-1073741823\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -580,8 +590,8 @@ void HttpRequestTest::testCreateProxyRequest()
 {
   auto request = std::make_shared<Request>();
   request->setUri("http://localhost/archives/aria2-1.0.0.tar.bz2");
-  auto p = std::make_shared<Piece>(0, 1024*1024);
-  auto segment = std::make_shared<PiecedSegment>(1024*1024, p);
+  auto p = std::make_shared<Piece>(0, 1_m);
+  auto segment = std::make_shared<PiecedSegment>(1_m, p);
 
   auto proxyRequest = std::make_shared<Request>();
   CPPUNIT_ASSERT(proxyRequest->setUri("http://localhost:9000"));
@@ -595,10 +605,10 @@ void HttpRequestTest::testCreateProxyRequest()
   request->supportsPersistentConnection(true);
 
   std::string expectedText = "CONNECT localhost:80 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Host: localhost:80\r\n"
-    //"Proxy-Connection: close\r\n"
-    "\r\n";
+                             "User-Agent: aria2\r\n"
+                             "Host: localhost:80\r\n"
+                             //"Proxy-Connection: close\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createProxyRequest());
 
@@ -606,10 +616,10 @@ void HttpRequestTest::testCreateProxyRequest()
   request->setKeepAliveHint(true);
 
   expectedText = "CONNECT localhost:80 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Host: localhost:80\r\n"
-    //"Proxy-Connection: Keep-Alive\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Host: localhost:80\r\n"
+                 //"Proxy-Connection: Keep-Alive\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createProxyRequest());
 
@@ -618,23 +628,24 @@ void HttpRequestTest::testCreateProxyRequest()
   request->setPipeliningHint(true);
 
   expectedText = "CONNECT localhost:80 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Host: localhost:80\r\n"
-    //"Proxy-Connection: Keep-Alive\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Host: localhost:80\r\n"
+                 //"Proxy-Connection: Keep-Alive\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createProxyRequest());
 
   // test proxy authorization
-  CPPUNIT_ASSERT(proxyRequest->setUri
-                 ("http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
+  CPPUNIT_ASSERT(proxyRequest->setUri(
+      "http://aria2proxyuser:aria2proxypasswd@localhost:9000"));
 
   expectedText = "CONNECT localhost:80 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Host: localhost:80\r\n"
-    //"Proxy-Connection: Keep-Alive\r\n"
-    "Proxy-Authorization: Basic YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
-    "\r\n";
+                 "User-Agent: aria2\r\n"
+                 "Host: localhost:80\r\n"
+                 //"Proxy-Connection: Keep-Alive\r\n"
+                 "Proxy-Authorization: Basic "
+                 "YXJpYTJwcm94eXVzZXI6YXJpYTJwcm94eXBhc3N3ZA==\r\n"
+                 "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createProxyRequest());
 }
@@ -645,8 +656,8 @@ void HttpRequestTest::testIsRangeSatisfied()
   request->supportsPersistentConnection(true);
   request->setUri("http://localhost:8080/archives/aria2-1.0.0.tar.bz2");
   request->setPipeliningHint(false); // default: false
-  auto p = std::make_shared<Piece>(0, 1024*1024);
-  auto segment = std::make_shared<PiecedSegment>(1024*1024, p);
+  auto p = std::make_shared<Piece>(0, 1_m);
+  auto segment = std::make_shared<PiecedSegment>(1_m, p);
   auto fileEntry = std::make_shared<FileEntry>("file", 0, 0);
 
   HttpRequest httpRequest;
@@ -659,19 +670,19 @@ void HttpRequestTest::testIsRangeSatisfied()
 
   CPPUNIT_ASSERT(httpRequest.isRangeSatisfied(range));
 
-  p.reset(new Piece(1, 1024*1024));
-  segment.reset(new PiecedSegment(1024*1024, p));
+  p.reset(new Piece(1, 1_m));
+  segment.reset(new PiecedSegment(1_m, p));
   httpRequest.setSegment(segment);
 
   CPPUNIT_ASSERT(!httpRequest.isRangeSatisfied(range));
 
-  uint64_t entityLength = segment->getSegmentLength()*10;
+  uint64_t entityLength = segment->getSegmentLength() * 10;
 
   range = Range(segment->getPosition(), 0, entityLength);
 
   CPPUNIT_ASSERT(httpRequest.isRangeSatisfied(range));
 
-  fileEntry->setLength(entityLength-1);
+  fileEntry->setLength(entityLength - 1);
 
   CPPUNIT_ASSERT(!httpRequest.isRangeSatisfied(range));
 
@@ -683,23 +694,21 @@ void HttpRequestTest::testIsRangeSatisfied()
 
   CPPUNIT_ASSERT(!httpRequest.isRangeSatisfied(range));
 
-  range = Range(segment->getPosition(),
-                segment->getPosition()+segment->getLength()-1,
-                entityLength);
+  range =
+      Range(segment->getPosition(),
+            segment->getPosition() + segment->getLength() - 1, entityLength);
 
   CPPUNIT_ASSERT(httpRequest.isRangeSatisfied(range));
 
   range = Range(segment->getPosition(),
-                segment->getPosition()+segment->getLength()-1,
-                0);
+                segment->getPosition() + segment->getLength() - 1, 0);
 
   CPPUNIT_ASSERT(!httpRequest.isRangeSatisfied(range));
 
-  range = Range(0, segment->getPosition()+segment->getLength()-1,
-                entityLength);
+  range =
+      Range(0, segment->getPosition() + segment->getLength() - 1, entityLength);
 
   CPPUNIT_ASSERT(!httpRequest.isRangeSatisfied(range));
-
 }
 
 void HttpRequestTest::testUserAgent()
@@ -707,25 +716,25 @@ void HttpRequestTest::testUserAgent()
   auto request = std::make_shared<Request>();
   request->setUri("http://localhost:8080/archives/aria2-1.0.0.tar.bz2");
 
-  //std::shared_ptr<Piece> p(new Piece(0, 1024));
-  //std::shared_ptr<Segment> segment(new PiecedSegment(1024, p));
+  // std::shared_ptr<Piece> p(new Piece(0, 1_k));
+  // std::shared_ptr<Segment> segment(new PiecedSegment(1_k, p));
 
   HttpRequest httpRequest;
   httpRequest.disableContentEncoding();
   httpRequest.setRequest(request);
-  //httpRequest.setSegment(segment);
+  // httpRequest.setSegment(segment);
   httpRequest.setUserAgent("aria2 (Linux)");
   httpRequest.setAuthConfigFactory(authConfigFactory_.get());
   httpRequest.setOption(option_.get());
 
   std::string expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2 (Linux)\r\n"
-    "Accept: */*\r\n"
-    "Host: localhost:8080\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+                             "User-Agent: aria2 (Linux)\r\n"
+                             "Accept: */*\r\n"
+                             "Host: localhost:8080\r\n"
+                             "Pragma: no-cache\r\n"
+                             "Cache-Control: no-cache\r\n"
+                             "Connection: close\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
@@ -735,10 +744,10 @@ void HttpRequestTest::testUserAgent()
   httpRequest.setProxyRequest(proxyRequest);
 
   std::string expectedTextForProxy = "CONNECT localhost:8080 HTTP/1.1\r\n"
-    "User-Agent: aria2 (Linux)\r\n"
-    "Host: localhost:8080\r\n"
-    //"Proxy-Connection: close\r\n"
-    "\r\n";
+                                     "User-Agent: aria2 (Linux)\r\n"
+                                     "Host: localhost:8080\r\n"
+                                     //"Proxy-Connection: close\r\n"
+                                     "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedTextForProxy, httpRequest.createProxyRequest());
 }
@@ -756,15 +765,15 @@ void HttpRequestTest::testAddHeader()
   httpRequest.addHeader("X-ARIA2: v0.13\nX-ARIA2-DISTRIBUTE: enabled\n");
   httpRequest.addHeader("Accept: text/html");
   std::string expectedText = "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "X-ARIA2: v0.13\r\n"
-    "X-ARIA2-DISTRIBUTE: enabled\r\n"
-    "Accept: text/html\r\n"
-    "\r\n";
+                             "User-Agent: aria2\r\n"
+                             "Host: localhost\r\n"
+                             "Pragma: no-cache\r\n"
+                             "Cache-Control: no-cache\r\n"
+                             "Connection: close\r\n"
+                             "X-ARIA2: v0.13\r\n"
+                             "X-ARIA2-DISTRIBUTE: enabled\r\n"
+                             "Accept: text/html\r\n"
+                             "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -782,14 +791,14 @@ void HttpRequestTest::testAcceptMetalink()
   httpRequest.setAcceptMetalink(true);
 
   std::string expectedText =
-    "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*,application/metalink4+xml,application/metalink+xml\r\n"
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+      "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*,application/metalink4+xml,application/metalink+xml\r\n"
+      "Host: localhost\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Connection: close\r\n"
+      "\r\n";
 
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 }
@@ -810,22 +819,21 @@ void HttpRequestTest::testEnableAcceptEncoding()
 #endif // HAVE_ZLIB
 
   std::string expectedTextHead =
-    "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
-    "User-Agent: aria2\r\n"
-    "Accept: */*\r\n";
-  std::string expectedTextTail =
-    "Host: localhost\r\n"
-    "Pragma: no-cache\r\n"
-    "Cache-Control: no-cache\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+      "GET /archives/aria2-1.0.0.tar.bz2 HTTP/1.1\r\n"
+      "User-Agent: aria2\r\n"
+      "Accept: */*\r\n";
+  std::string expectedTextTail = "Host: localhost\r\n"
+                                 "Pragma: no-cache\r\n"
+                                 "Cache-Control: no-cache\r\n"
+                                 "Connection: close\r\n"
+                                 "\r\n";
 
   std::string expectedText = expectedTextHead;
   expectedText += expectedTextTail;
   CPPUNIT_ASSERT_EQUAL(expectedText, httpRequest.createRequest());
 
   expectedText = expectedTextHead;
-  if(!acceptEncodings.empty()) {
+  if (!acceptEncodings.empty()) {
     expectedText += "Accept-Encoding: ";
     expectedText += acceptEncodings;
     expectedText += "\r\n";
@@ -846,7 +854,8 @@ void HttpRequestTest::testCreateRequest_ipv6LiteralAddr()
   httpRequest.setAuthConfigFactory(authConfigFactory_.get());
   httpRequest.setOption(option_.get());
 
-  CPPUNIT_ASSERT(httpRequest.createRequest().find("Host: [::1]") != std::string::npos);
+  CPPUNIT_ASSERT(httpRequest.createRequest().find("Host: [::1]") !=
+                 std::string::npos);
 
   auto proxy = std::make_shared<Request>();
   proxy->setUri("http://proxy");

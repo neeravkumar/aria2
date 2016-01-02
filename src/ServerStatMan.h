@@ -62,10 +62,11 @@ public:
 
   bool save(const std::string& filename) const;
 
-  void removeStaleServerStat(time_t timeout);
+  void removeStaleServerStat(const std::chrono::seconds& timeout);
+
 private:
   typedef std::set<std::shared_ptr<ServerStat>,
-                   DerefLess<std::shared_ptr<ServerStat> > > ServerStatSet;
+                   DerefLess<std::shared_ptr<ServerStat>>> ServerStatSet;
   ServerStatSet serverStats_;
 };
 
